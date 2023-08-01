@@ -20,8 +20,8 @@ logging_arg = add_argument_group('Logging')
 trainer_arg = add_argument_group('Trainer')
 trainer_arg.add_argument('--trainer', type=str, default='HardestContrastiveLossTrainer')
 trainer_arg.add_argument('--save_freq_epoch', type=int, default=1)
-trainer_arg.add_argument('--batch_size', type=int, default=4)
-trainer_arg.add_argument('--val_batch_size', type=int, default=2)
+trainer_arg.add_argument('--batch_size', type=int, default=2)
+trainer_arg.add_argument('--val_batch_size', type=int, default=1)
 
 # Hard negative mining
 trainer_arg.add_argument('--use_hard_negative', type=str2bool, default=True)
@@ -73,8 +73,8 @@ net_arg.add_argument('--best_val_metric', type=str, default='success',help='[fea
 # Optimizer arguments
 opt_arg = add_argument_group('Optimizer')
 opt_arg.add_argument('--optimizer', type=str, default='SGD')
-opt_arg.add_argument('--max_epoch', type=int, default=100)
-opt_arg.add_argument('--lr', type=float, default=9e-2)
+opt_arg.add_argument('--max_epoch', type=int, default=200)
+opt_arg.add_argument('--lr', type=float, default=1e-1)
 opt_arg.add_argument('--momentum', type=float, default=0.8)
 opt_arg.add_argument('--sgd_momentum', type=float, default=0.9)
 opt_arg.add_argument('--sgd_dampening', type=float, default=0.1)
@@ -101,15 +101,15 @@ data_arg = add_argument_group('Data')
 # ----------------------------------------------------------------------- #
 # Kitti  ---- |output path|
 output_kitti = "outputs_kitti"
-logging_arg.add_argument('--out_dir', type=str, default='/data1/zhangliyuan/code/IMFNet/outputs_kitti/exp1')
+logging_arg.add_argument('--out_dir', type=str, default=output_kitti)
 
 #Kitti  ----  |resume dir|
-misc_arg.add_argument('--resume_dir', type=str, default='/data1/zhangliyuan/code/IMFNet_exp/pretrain/Kitti')
+misc_arg.add_argument('--resume_dir', type=str, default=None)
 
 # kitti ---- |num thread|
-misc_arg.add_argument('--train_num_thread', type=int, default=16)
-misc_arg.add_argument('--val_num_thread', type=int, default=16)
-misc_arg.add_argument('--test_num_thread', type=int, default=16)
+misc_arg.add_argument('--train_num_thread', type=int, default=2)
+misc_arg.add_argument('--val_num_thread', type=int, default=1)
+misc_arg.add_argument('--test_num_thread', type=int, default=2)
 
 # Kitti  ----  |dataset|
 dataset_Kitti = 'KITTINMPairDataset'
@@ -118,7 +118,7 @@ data_arg.add_argument('--dataset', type=str, default=dataset_Kitti)
 voxel_size_Kitti = 0.3
 data_arg.add_argument('--voxel_size', type=float, default=voxel_size_Kitti)
 # Kitti ---- |ICP|
-icp_path = "/data1/zhangliyuan/code/IMFNet_exp/datasets/Kitti/Kitti/dataset/icp"
+icp_path = "/DISK/qwt/datasets/kitti/data_odometry_velodyne/dataset/icp"
 opt_arg.add_argument('--icp_cache_path', type=str, default=icp_path)
 # ----------------------------------------------------------------------- #
 
@@ -132,7 +132,7 @@ data_arg.add_argument('--overlap_path', type=str, default=overlap_path)
 data_arg.add_argument('--image_W', type=str, default=160)
 data_arg.add_argument('--image_H', type=str, default=120)
 
-kitti_path = "/data1/zhangliyuan/code/IMFNet_exp/datasets/Kitti/Kitti"
+kitti_path = "/DISK/qwt/datasets/kitti/data_odometry_velodyne"
 data_arg.add_argument('--kitti_root', type=str, default=kitti_path)
 data_arg.add_argument(
     '--kitti_max_time_diff',

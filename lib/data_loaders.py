@@ -351,9 +351,9 @@ class IndoorPairDataset(PairDataset):
 class KITTIPairDataset(PairDataset):
   AUGMENT = None
   DATA_FILES = {
-      'train': '/data1/zhangliyuan/code/IMFNet/config/train_kitti.txt',
-      'val': '/data1/zhangliyuan/code/IMFNet/config/val_kitti.txt',
-      'test': '/data1/zhangliyuan/code/IMFNet/config/test_kitti.txt'
+      'train': '../config/train_kitti.txt',
+      'val': '../config/val_kitti.txt',
+      'test': '../config/test_kitti.txt'
   }
   TEST_RANDOM_ROTATION = False
   IS_ODOMETRY = True

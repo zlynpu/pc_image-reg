@@ -19,9 +19,9 @@ logging_arg = add_argument_group('Logging')
 
 trainer_arg = add_argument_group('Trainer')
 trainer_arg.add_argument('--trainer', type=str, default='HardestContrastiveLossTrainer')
-trainer_arg.add_argument('--save_freq_epoch', type=int, default=5)
-trainer_arg.add_argument('--batch_size', type=int, default=4)
-trainer_arg.add_argument('--val_batch_size', type=int, default=2)
+trainer_arg.add_argument('--save_freq_epoch', type=int, default=1)
+trainer_arg.add_argument('--batch_size', type=int, default=2)
+trainer_arg.add_argument('--val_batch_size', type=int, default=1)
 
 # Hard negative mining
 trainer_arg.add_argument('--use_hard_negative', type=str2bool, default=True)
@@ -73,8 +73,8 @@ net_arg.add_argument('--best_val_metric', type=str, default='feat_match_ratio',h
 # Optimizer arguments
 opt_arg = add_argument_group('Optimizer')
 opt_arg.add_argument('--optimizer', type=str, default='SGD')
-opt_arg.add_argument('--max_epoch', type=int, default=100)
-opt_arg.add_argument('--lr', type=float, default=2e-1)
+opt_arg.add_argument('--max_epoch', type=int, default=200)
+opt_arg.add_argument('--lr', type=float, default=1e-1)
 opt_arg.add_argument('--momentum', type=float, default=0.8)
 opt_arg.add_argument('--sgd_momentum', type=float, default=0.9)
 opt_arg.add_argument('--sgd_dampening', type=float, default=0.1)
@@ -109,8 +109,8 @@ logging_arg.add_argument('--out_dir', type=str, default=output_3DMatch)
 misc_arg.add_argument('--resume_dir', type=str, default=None)
 
 # 3DMtach ---- |num thread|
-misc_arg.add_argument('--train_num_thread', type=int, default=16)
-misc_arg.add_argument('--val_num_thread', type=int, default=16)
+misc_arg.add_argument('--train_num_thread', type=int, default=2)
+misc_arg.add_argument('--val_num_thread', type=int, default=1)
 misc_arg.add_argument('--test_num_thread', type=int, default=2)
 
 # 3DMatch ---- |dataset|
@@ -124,9 +124,9 @@ data_arg.add_argument('--voxel_size', type=float, default=voxel_size_3DMatch)
 # ----------------------------------------------------------------------- #
 
 # Dataset path
-data_path = "/data1/zhangliyuan/code/IMFNet_exp/datasets/3DImageMatch/3DImageMatch/train"
+data_path = "/data1/zhangliyuan/code/IMFNet_exp/dataset/3DImageMatch/3DImageMatch/train"
 data_arg.add_argument('--threed_match_dir', type=str, default=data_path)
-overlap_path = "/data1/zhangliyuan/code/IMFNet_exp/datasets/3DImageMatch/3DImageMatch/overlap"
+overlap_path = "/data1/zhangliyuan/code/IMFNet_exp/dataset/3DImageMatch/3DImageMatch/overlap"
 data_arg.add_argument('--overlap_path', type=str, default=overlap_path)
 
 # image setting

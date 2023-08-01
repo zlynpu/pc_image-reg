@@ -96,20 +96,19 @@ def main(config,checkpoint):
     reg_timer.tic()
     distance_threshold = config.voxel_size * 1.0
     # distance_threshold = 0.3
-    ransac_result = o3d.pipelines.registration.registration_ransac_based_on_feature_matching(
+    ransac_result = o3d.registration.registration_ransac_based_on_feature_matching(
         source=pcd0,
         target=pcd1,
         source_feature=feat0,
         target_feature=feat1,
         max_correspondence_distance=distance_threshold,
-        estimation_method=o3d.pipelines.registration.TransformationEstimationPointToPoint(False),
+        estimation_method=o3d.registration.TransformationEstimationPointToPoint(False),
         ransac_n=4,
         checkers=[
-            o3d.pipelines.registration.CorrespondenceCheckerBasedOnEdgeLength(0.9),
-            o3d.pipelines.registration.CorrespondenceCheckerBasedOnDistance(distance_threshold)
+            o3d.registration.CorrespondenceCheckerBasedOnEdgeLength(0.9),
+            o3d.registration.CorrespondenceCheckerBasedOnDistance(distance_threshold)
         ],
-        criteria=o3d.pipelines.registration.RANSACConvergenceCriteria(50000, 1000),
-        mutual_filter=False
+        criteria=o3d.registration.RANSACConvergenceCriteria(50000, 1000),
     )
     T_ransac = torch.from_numpy(ransac_result.transformation.astype(np.float32))
     reg_timer.toc()
@@ -149,15 +148,15 @@ def main(config,checkpoint):
 
 
 if __name__ == '__main__':
-  # os.environ["CUDA_VISIBLE_DEVICES"]="7"
-  dataset_path = "/data1/zhangliyuan/code/IMFNet_exp/dataset/Kitti/Kitti"
-  output_path = "/data1/zhangliyuan/code/IMFNet/result"
 
-  checkpoint_path = "/data1/zhangliyuan/code/IMFNet_exp/pretrain/pretrain/Kitti/Kitti.pth"
+  dataset_path = "/DISK/qwt/datasets/kitti/data_odometry_velodyne"
+  output_path = "/home/qwt/code/FCGF-ours_modify_transformer_nocat/outputs_kitti_12"
+
+  checkpoint_path = "/home/qwt/code/FCGF-ours_modify_transformer_nocat/outputs/checkpoint_epoch_122_0.9925.pth"
 
 
   parser = argparse.ArgumentParser()
-  parser.add_argument('--save_dir', default='/data1/zhangliyuan/code/IMFNet_exp/pretrain/pretrain/Kitti', type=str)
+  parser.add_argument('--save_dir', default=output_path, type=str)
   parser.add_argument('--test_phase', default='test', type=str)
   parser.add_argument('--test_num_thread', default=5, type=int)
   parser.add_argument('--model', default=checkpoint_path, type=str)
@@ -173,5 +172,5 @@ if __name__ == '__main__':
   config.kitti_odometry_root = args.kitti_root + '/dataset'
   config.test_num_thread = args.test_num_thread
 
-  main(config,checkpoint=args.model)
+  main(config,checkpoint=cfg.model)
 

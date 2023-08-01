@@ -5,7 +5,7 @@ import warnings
 warnings.filterwarnings("ignore")
 import tqdm
 import os
-os.environ["CUDA_VISIBLE_DEVICES"]="7"
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 import sys
 import numpy as np
 import argparse
@@ -14,7 +14,7 @@ import open3d as o3d
 import matplotlib.image as image
 import math
 
-ROOT_DIR = os.path.abspath('../')
+ROOT_DIR = os.path.abspath('/data1/zhangliyuan/code/IMFNet')
 if ROOT_DIR not in sys.path:
     sys.path.append(ROOT_DIR)
 
@@ -135,8 +135,8 @@ def extract_features_batch(
 if __name__ == '__main__':
 
   test_path = '/data1/zhangliyuan/code/IMFNet_exp/dataset/3DImageMatch/3DImageMatch/3DMatch_test'
-  target_path = '/data1/zhangliyuan/code/IMFNet/desc/exp1'
-  checkpoint_path = '/data1/zhangliyuan/code/IMFNet_exp/pretrain/pretrain/3DMatch/3DMatch.pth'
+  target_path = '/data1/zhangliyuan/code/IMFNet/desc/exp4'
+  checkpoint_path = '/data1/zhangliyuan/code/IMFNet/pretrain/3DMatch/3DMatch.pth'
 
 
   parser = argparse.ArgumentParser()

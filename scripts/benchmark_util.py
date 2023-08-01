@@ -14,7 +14,7 @@ We follow D3Feat,PREDATOR to set ransac_n = 3 for 3DMatch and ransac_n = 4 for K
 For 3DMatch dataset, we observe significant improvement after changing ransac_n from 4 to 3.
 """
 def run_ransac(xyz0, xyz1, feat0, feat1, voxel_size,ransac_n=4):
-  distance_threshold = 0.05#voxel_size * 1.5
+  distance_threshold = voxel_size * 1.5
   result_ransac = o3d.pipelines.registration.registration_ransac_based_on_feature_matching(
       source=xyz0,
       target=xyz1,

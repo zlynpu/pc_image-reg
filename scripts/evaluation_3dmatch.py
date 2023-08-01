@@ -5,7 +5,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
 import os
-os.environ["CUDA_VISIBLE_DEVICES"]="3"
+os.environ["CUDA_VISIBLE_DEVICES"]="5"
 import argparse
 import numpy as np
 import os.path as osp
@@ -28,7 +28,6 @@ from scripts.benchmark_util import run_ransac
 INLIER_THRESHES = [
     0.1,
 ]
-# INLIER_THRESHES = (np.arange(0, 21, dtype=np.float32) * 0.2 / 20).tolist()
 # INLIER_RATIO_THRESHES = (np.arange(0, 21, dtype=np.float32) * 0.2 / 20).tolist()
 INLIER_RATIO_THRESHES = [0.05]
 
@@ -153,6 +152,7 @@ def register_fragment_pair(
         else:
             # sample points（5000）
             Ni, Nj = len(points_i), len(points_j)
+            # print(Ni)
             inds_i = np.random.choice(Ni, min(Ni, num_rand_keypoints), replace=False)
             inds_j = np.random.choice(Nj, min(Nj, num_rand_keypoints), replace=False)
 
@@ -169,6 +169,7 @@ def register_fragment_pair(
         key_coords_j = ME.utils.fnv_hash_vec(np.floor(coord_j / voxel_size))
 
         inds_i = np.where(np.isin(key_coords_i, key_points_i))[0]
+        # print(inds_i.shape)
         inds_j = np.where(np.isin(key_coords_j, key_points_j))[0]
 
         frag1_kpts, frag1_descs = coord_i[inds_i], feat_i[inds_i]
@@ -189,6 +190,7 @@ def register_fragment_pair(
     gt_T = poses[overlap_pid].transformation
     error = uio.compute_transform_error(gt_T, covariance, es_T)
     accepted = error < 0.2 ** 2
+    # print(accepted)
     rr = 0
     rre = 0
     rte = 0
@@ -220,6 +222,7 @@ def register_fragment_pair(
 
     frag2_match_kpts = frag2_kpts[frag2_match_indices, :]
     frag1_match_kpts = frag1_kpts[frag21_nnindices[frag2_match_indices], :]
+    # print(frag1_match_kpts.shape)
 
     frag2_pcd_tmp = o3d.geometry.PointCloud()
     frag2_pcd_tmp.points = o3d.utility.Vector3dVector(frag2_match_kpts)
@@ -270,8 +273,8 @@ def run_scene_matching(scene_name,                  # current scene
     # all cloud_bin_* names
     fragment_names = [fn[:-4] for fn in fragment_names]
 
-    poses = uio.read_log(osp.join(f'/data1/zhangliyuan/code/IMFNet_exp/dataset/3DImageMatch/3DImageMatch/benchmarks/{cfg.benchmarks}', scene_name, 'gt.log'))
-    infos = uio.read_info_file(osp.join(f'/data1/zhangliyuan/code/IMFNet_exp/dataset/3DImageMatch/3DImageMatch/benchmarks/{cfg.benchmarks}', scene_name, 'gt.info'))
+    poses = uio.read_log(osp.join(f'../benchmarks/{cfg.benchmarks}', scene_name, 'gt.log'))
+    infos = uio.read_info_file(osp.join(f'../benchmarks/{cfg.benchmarks}', scene_name, 'gt.info'))
 
     register_results = []
     for pose in poses:
@@ -558,9 +561,9 @@ def parse_args():
 
     test_path = '/data1/zhangliyuan/code/IMFNet_exp/dataset/3DImageMatch/3DImageMatch/3DMatch_test'
     # out_path = "/DISK/qwt/desc/transformer/result"
-    out_path = "/data1/zhangliyuan/code/IMFNet/result/IMFNet_3DMatch_result_1.0.2"
+    out_path = "/data1/zhangliyuan/code/IMFNet/result/3dmatch/exp5"
 
-    desc_path = "/data1/zhangliyuan/code/IMFNet/desc/exp1"
+    desc_path = "/data1/zhangliyuan/code/IMFNet/desc/exp4"
     desc_type = "IMFNet"
 
     desc_roots = [
