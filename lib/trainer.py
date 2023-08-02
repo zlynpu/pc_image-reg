@@ -146,7 +146,7 @@ class AlignmentTrainer:
         for k, v in val_dict.items():
           self.writer.add_scalar(f'val/{k}', v, epoch)
         if(self.best_val_metric == "feat_match_ratio" or self.best_val_metric == "success"):
-          if self.best_val < val_dict[self.best_val_metric]:
+          if self.best_val <= val_dict[self.best_val_metric]:
             logging.info(
                 f'Saving the best val model with {self.best_val_metric}: {val_dict[self.best_val_metric]}'
             )
@@ -163,7 +163,7 @@ class AlignmentTrainer:
                 f'Current best val model with {self.best_val_metric}: {self.best_val} at epoch {self.best_val_epoch}'
             )
         elif(self.best_val_metric == "rre" or self.best_val_metric == "rte" ):
-          if self.best_val > val_dict[self.best_val_metric]:
+          if self.best_val >= val_dict[self.best_val_metric]:
             logging.info(
                 f'Saving the best val model with {self.best_val_metric}: {val_dict[self.best_val_metric]}'
             )
@@ -353,13 +353,15 @@ class ContrastiveLossTrainer(AlignmentTrainer):
       sinput0 = ME.SparseTensor(
           input_dict['sinput0_F'].to(self.device),
           coordinates=input_dict['sinput0_C'].to(self.device))
-      F0 = self.model(sinput0,image0).F
 
       image1 = input_dict['image1'].to(self.device)
       sinput1 = ME.SparseTensor(
           input_dict['sinput1_F'].to(self.device),
           coordinates=input_dict['sinput1_C'].to(self.device))
-      F1 = self.model(sinput1,image1).F
+      
+      result0,result1 = self.model(sinput0,sinput1,image0,image1)
+      F0 = result0.F
+      F1 = result1.F
       feat_timer.toc()
 
       matching_timer.tic()
@@ -518,13 +520,15 @@ class HardestContrastiveLossTrainer(ContrastiveLossTrainer):
         sinput0 = ME.SparseTensor(
             input_dict['sinput0_F'].to(self.device),
             coordinates=input_dict['sinput0_C'].to(self.device))
-        F0 = self.model(sinput0,image0).F
 
         image1 = input_dict['image1'].to(self.device)
         sinput1 = ME.SparseTensor(
             input_dict['sinput1_F'].to(self.device),
             coordinates=input_dict['sinput1_C'].to(self.device))
-        F1 = self.model(sinput1,image1).F
+      
+        result0,result1 = self.model(sinput0,sinput1,image0,image1)
+        F0 = result0.F
+        F1 = result1.F
 
         pos_pairs = input_dict['correspondences']
         pos_loss, neg_loss = self.contrastive_hardest_negative_loss(

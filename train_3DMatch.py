@@ -1,13 +1,14 @@
 # coding = utf-8
 import open3d as o3d  # prevent loading error
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 import sys
 import json
 import logging
 import torch
 from easydict import EasyDict as edict
 import warnings
+import MinkowskiEngine as ME
 warnings.filterwarnings("ignore")
 
 from lib.data_loaders import make_data_loader
@@ -57,6 +58,7 @@ def main(config, resume=False):
         num_threads=config.val_num_thread)
   else:
     val_loader = None
+  # ME.set_sparse_tensor_operation_mode('shared')
 
   Trainer = get_trainer(config.trainer)
   trainer = Trainer(

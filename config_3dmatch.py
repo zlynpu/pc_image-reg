@@ -20,8 +20,8 @@ logging_arg = add_argument_group('Logging')
 trainer_arg = add_argument_group('Trainer')
 trainer_arg.add_argument('--trainer', type=str, default='HardestContrastiveLossTrainer')
 trainer_arg.add_argument('--save_freq_epoch', type=int, default=1)
-trainer_arg.add_argument('--batch_size', type=int, default=2)
-trainer_arg.add_argument('--val_batch_size', type=int, default=1)
+trainer_arg.add_argument('--batch_size', type=int, default=4)
+trainer_arg.add_argument('--val_batch_size', type=int, default=2)
 
 # Hard negative mining
 trainer_arg.add_argument('--use_hard_negative', type=str2bool, default=True)
@@ -102,15 +102,15 @@ misc_arg.add_argument('--nn_max_n',type=int,default=500,help='The maximum number
 data_arg = add_argument_group('Data')
 # ----------------------------------------------------------------------- #
 # 3DMatch ---- |output path|
-output_3DMatch = "outputs"
+output_3DMatch = "outputs/3dmatch_raw"
 logging_arg.add_argument('--out_dir', type=str, default=output_3DMatch)
 
 # 3DMatch ---- |resume dir|
 misc_arg.add_argument('--resume_dir', type=str, default=None)
 
 # 3DMtach ---- |num thread|
-misc_arg.add_argument('--train_num_thread', type=int, default=2)
-misc_arg.add_argument('--val_num_thread', type=int, default=1)
+misc_arg.add_argument('--train_num_thread', type=int, default=16)
+misc_arg.add_argument('--val_num_thread', type=int, default=16)
 misc_arg.add_argument('--test_num_thread', type=int, default=2)
 
 # 3DMatch ---- |dataset|

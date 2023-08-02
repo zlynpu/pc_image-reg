@@ -90,7 +90,17 @@ class ResUNet2(ME.MinkowskiNetwork):
     # fusion attention
     self.attention_fusion = AttentionFusion(
         dim=128,  # the image channels
-        depth=0,  # depth of net (self-attention - Processing的数量)
+        depth=1,  # depth of net (self-attention - Processing的数量)
+        latent_dim=CHANNELS[4],  # the PC channels
+        cross_heads=1,  # number of heads for cross attention. paper said 1
+        latent_heads=8,  # number of heads for latent self attention, 8
+        cross_dim_head=int(CHANNELS[4]/2),  # number of dimensions per cross attention head
+        latent_dim_head=int(CHANNELS[4]/2),  # number of dimensions per latent self attention head
+    )
+
+    self.attention_fusion_ptp = AttentionFusion(
+        dim=CHANNELS[4],  # the image channels
+        depth=1,  # depth of net (self-attention - Processing的数量)
         latent_dim=CHANNELS[4],  # the PC channels
         cross_heads=1,  # number of heads for cross attention. paper said 1
         latent_heads=8,  # number of heads for latent self attention, 8
@@ -160,79 +170,148 @@ class ResUNet2(ME.MinkowskiNetwork):
     # image_Encoder
     self.img_encoder = ImageEncoder()
 
-  def forward(self, x, image):
+  def forward(self, stensor_src, stensor_tgt, src_image, tgt_image):
 
     # I1,I2,I3,I_global = self.img_encoder(image)
-    image = self.img_encoder(image)
+    src_image = self.img_encoder(src_image)
+    tgt_image = self.img_encoder(tgt_image)
 
-    out_s1 = self.conv1(x)
-    out_s1 = self.norm1(out_s1)
-    out_s1 = self.block1(out_s1)
-    out = MEF.relu(out_s1)
+    # Encode src
+    src_s1 = self.conv1(stensor_src)
+    src_s1 = self.norm1(src_s1)
+    src_s1 = self.block1(src_s1)
+    src = MEF.relu(src_s1)
 
-    out_s2 = self.conv2(out)
-    out_s2 = self.norm2(out_s2)
-    out_s2 = self.block2(out_s2)
-    out = MEF.relu(out_s2)
+    src_s2 = self.conv2(src)
+    src_s2 = self.norm2(src_s2)
+    src_s2 = self.block2(src_s2)
+    src = MEF.relu(src_s2)
 
-    out_s4 = self.conv3(out)
-    out_s4 = self.norm3(out_s4)
-    out_s4 = self.block3(out_s4)
-    out = MEF.relu(out_s4)
+    src_s4 = self.conv3(src)
+    src_s4 = self.norm3(src_s4)
+    src_s4 = self.block3(src_s4)
+    src = MEF.relu(src_s4)
 
-    out_s8 = self.conv4(out)
-    out_s8 = self.norm4(out_s8)
-    out_s8 = self.block4(out_s8)
-    out = MEF.relu(out_s8)
+    src_s8 = self.conv4(src)
+    src_s8 = self.norm4(src_s8)
+    src_s8 = self.block4(src_s8)
+    src = MEF.relu(src_s8)
+
+    # Encode tgt
+    tgt_s1 = self.conv1(stensor_tgt)
+    tgt_s1 = self.norm1(tgt_s1)
+    tgt_s1 = self.block1(tgt_s1)
+    tgt = MEF.relu(tgt_s1)
+
+    tgt_s2 = self.conv2(tgt)
+    tgt_s2 = self.norm2(tgt_s2)
+    tgt_s2 = self.block2(tgt_s2)
+    tgt = MEF.relu(tgt_s2)
+
+    tgt_s4 = self.conv3(tgt)
+    tgt_s4 = self.norm3(tgt_s4)
+    tgt_s4 = self.block3(tgt_s4)
+    tgt = MEF.relu(tgt_s4)
+
+    tgt_s8 = self.conv4(tgt)
+    tgt_s8 = self.norm4(tgt_s8)
+    tgt_s8 = self.block4(tgt_s8)
+    tgt = MEF.relu(tgt_s8)
+    # print(out_s.coordinate_manager)
+    # print(out_s4.coordinate_manager)
 
     # fusion-attention
-    out._F = self.transformer(images=image, F=out.F,xyz = out.C)
+    # src._F = self.transformer(images=src_image, F=src.F,xyz=src.C)
+    out_sfs_feat0 = self.transformer(images=src_image, F=src.F,xyz=src.C)
+    out_sft_feat0 = self.transformer(images=src_image, F=tgt.F,xyz=tgt.C)
+    src._F = self.transformer_ptp(F0=out_sfs_feat0, xyz0=src.C, F1=out_sft_feat0)
+    # print(out_s_feat.shape)
+    # print(out_s.C.shape)
 
-    out = self.conv4_tr(out)
-    out = self.norm4_tr(out)
-    out = self.block4_tr(out)
-    out_s4_tr = MEF.relu(out)
+    out_sfs_feat1 = self.transformer(images=tgt_image, F=src.F, xyz=src.C)
+    out_sft_feat1 = self.transformer(images=tgt_image, F=tgt.F, xyz=tgt.C)
+    tgt._F = self.transformer_ptp(F0=out_sft_feat1, xyz0=tgt.C, F1=out_sfs_feat1)
+    # print(out_t_feat.shape)
+    # print(out_t.C.shape)
+    
+    # Decode src
+    src = self.conv4_tr(src)
+    src = self.norm4_tr(src)
+    src = self.block4_tr(src)
+    src_s4_tr = MEF.relu(src)
 
-    # 1 , attention fusion
-    out = ME.cat(out_s4_tr, out_s4)
-    # out._F = self.af(I1,I_global,out.F,af_flag=1)
-    del out_s4_tr
-    del out_s4
+    # print(out_s4_tr.coordinate_manager)
+    src = ME.cat(src_s4_tr, src_s4)
+    del src_s4_tr
+    del src_s4
 
-    out = self.conv3_tr(out)
-    out = self.norm3_tr(out)
-    out = self.block3_tr(out)
-    out_s2_tr = MEF.relu(out)
+    src = self.conv3_tr(src)
+    src = self.norm3_tr(src)
+    src = self.block3_tr(src)
+    src_s2_tr = MEF.relu(src)
 
-    # 2 , attention fusion
-    out = ME.cat(out_s2_tr, out_s2)
-    # out._F = self.af(I2,I_global,out.F,af_flag=2)
-    del out_s2_tr
-    del out_s2
+    src = ME.cat(src_s2_tr, src_s2)
+    del src_s2_tr
+    del src_s2
 
-    out = self.conv2_tr(out)
-    out = self.norm2_tr(out)
-    out = self.block2_tr(out)
-    out_s1_tr = MEF.relu(out)
+    src = self.conv2_tr(src)
+    src = self.norm2_tr(src)
+    src = self.block2_tr(src)
+    src_s1_tr = MEF.relu(src)
 
-    # 3 , attention fusion
-    out = ME.cat(out_s1_tr, out_s1)
-    # out._F = self.af(I3, I_global, out.F, af_flag=3)
-    del out_s1_tr
-    del out_s1
+    src = ME.cat(src_s1_tr, src_s1)
+    del src_s1_tr
+    del src_s1
 
-    out = self.conv1_tr(out)
-    out = MEF.relu(out)
-    out = self.final(out)
+    src= self.conv1_tr(src)
+    src = MEF.relu(src)
+    src = self.final(src)
+
+    # Decode tst
+    tgt = self.conv4_tr(tgt)
+    tgt = self.norm4_tr(tgt)
+    tgt = self.block4_tr(tgt)
+    tgt_s4_tr = MEF.relu(tgt)
+
+   
+    tgt = ME.cat(tgt_s4_tr, tgt_s4)
+    del tgt_s4_tr
+    del tgt_s4
+
+    tgt = self.conv3_tr(tgt)
+    tgt = self.norm3_tr(tgt)
+    tgt = self.block3_tr(tgt)
+    tgt_s2_tr = MEF.relu(tgt)
+
+    tgt = ME.cat(tgt_s2_tr, tgt_s2)
+    del tgt_s2_tr
+    del tgt_s2
+
+    tgt = self.conv2_tr(tgt)
+    tgt = self.norm2_tr(tgt)
+    tgt = self.block2_tr(tgt)
+    tgt_s1_tr = MEF.relu(tgt)
+
+    tgt = ME.cat(tgt_s1_tr, tgt_s1)
+    del tgt_s1_tr
+    del tgt_s1
+
+    tgt = self.conv1_tr(tgt)
+    tgt = MEF.relu(tgt)
+    tgt = self.final(tgt)
 
     if self.normalize_feature:
       return ME.SparseTensor(
-          out.F / torch.norm(out.F, p=2, dim=1, keepdim=True),
-          coordinate_map_key=out.coordinate_map_key,
-          coordinate_manager=out.coordinate_manager
+          src.F / torch.norm(src.F, p=2, dim=1, keepdim=True),
+          coordinate_map_key=src.coordinate_map_key,
+          coordinate_manager=src.coordinate_manager
+      ), ME.SparseTensor(
+          tgt.F / torch.norm(tgt.F, p=2, dim=1, keepdim=True),
+          coordinate_map_key=tgt.coordinate_map_key,
+          coordinate_manager=tgt.coordinate_manager
       )
     else:
-      return out
+      return src, tgt
 
   def transformer(self,images,F,xyz):
 
@@ -272,6 +351,38 @@ class ResUNet2(ME.MinkowskiNetwork):
 
       return F
 
+  def transformer_ptp(self, F0, xyz0, F1):
+
+      # batch ----- batch
+      lengths = []
+      max_batch = torch.max(xyz0[:, 0])
+      for i in range(max_batch + 1):
+          length = torch.sum(xyz0[:, 0] == i)
+          lengths.append(length)
+      # batch ----- batch
+
+      ps = []
+      start = 0
+      end = 0
+      for length in lengths:
+
+          # pc ------- pc
+          end += length
+          P0_att = torch.unsqueeze(F0[start:end, :], dim=0)  # [B,M,C]
+          P1_att = torch.unsqueeze(F1[start:end, :], dim=0)
+          # pc ------- pc
+
+
+          # fusion attention
+          P_att = self.attention_fusion_ptp(P1_att,queries_encoder = P0_att)
+          P_att = torch.squeeze(P_att)
+          start += length
+          ps.append(P_att)
+          # fusion attention
+
+      F = torch.cat(ps, dim=0)
+
+      return F
 
 class ResUNetBN2(ResUNet2):
   NORM_TYPE = 'BN'
