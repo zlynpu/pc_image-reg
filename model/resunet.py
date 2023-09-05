@@ -3,11 +3,14 @@ import torch
 import MinkowskiEngine as ME
 import MinkowskiEngine.MinkowskiFunctional as MEF
 from model.common import get_norm
+from model.gcn import GCN
 
 from model.residual_block import get_block
 from model.Img_Encoder import ImageEncoder
+from model.Img_Decoder import ImageDecoder
 from model.attention_fusion import AttentionFusion
 
+import torch.nn.functional as F
 import torch.nn as nn
 import math
 
@@ -38,6 +41,7 @@ class ResUNet2(ME.MinkowskiNetwork):
     TR_CHANNELS = self.TR_CHANNELS
     IMG_CHANNELS = self.IMG_CHANNELS
 
+    self.nets = ['self', 'cross', 'self']
     self.normalize_feature = normalize_feature
     self.conv1 = ME.MinkowskiConvolution(
         in_channels=in_channels,
@@ -97,19 +101,15 @@ class ResUNet2(ME.MinkowskiNetwork):
         cross_dim_head=int(CHANNELS[4]/2),  # number of dimensions per cross attention head
         latent_dim_head=int(CHANNELS[4]/2),  # number of dimensions per latent self attention head
     )
-
-    self.attention_fusion_ptp = AttentionFusion(
-        dim=CHANNELS[4],  # the image channels
-        depth=1,  # depth of net (self-attention - Processing的数量)
-        latent_dim=CHANNELS[4],  # the PC channels
-        cross_heads=1,  # number of heads for cross attention. paper said 1
-        latent_heads=8,  # number of heads for latent self attention, 8
-        cross_dim_head=int(CHANNELS[4]/2),  # number of dimensions per cross attention head
-        latent_dim_head=int(CHANNELS[4]/2),  # number of dimensions per latent self attention head
-    )
+    # Overlap attention module
+    self.epsilon = torch.nn.Parameter(torch.tensor(-5.0))
+    self.bottle = nn.Conv1d(CHANNELS[4], config.gnn_feats_dim,kernel_size=1,bias=True)
+    self.gnn = GCN(config.num_head,config.gnn_feats_dim, config.dgcnn_k, self.nets)
+    self.proj_gnn = nn.Conv1d(config.gnn_feats_dim,config.gnn_feats_dim,kernel_size=1, bias=True)
+    self.proj_score = nn.Conv1d(config.gnn_feats_dim,1,kernel_size=1,bias=True)
 
     self.conv4_tr = ME.MinkowskiConvolutionTranspose(
-        in_channels=CHANNELS[4],
+        in_channels=config.gnn_feats_dim + 2,
         out_channels=TR_CHANNELS[4],
         kernel_size=3,
         stride=2,
@@ -160,22 +160,26 @@ class ResUNet2(ME.MinkowskiNetwork):
 
     self.final = ME.MinkowskiConvolution(
         in_channels=TR_CHANNELS[1],
-        out_channels=out_channels,
+        out_channels=out_channels + 2,
         kernel_size=1,
         stride=1,
         dilation=1,
         bias=True,
         dimension=D)
 
-    # image_Encoder
+    # image
     self.img_encoder = ImageEncoder()
+    self.img_decoder = ImageDecoder()
 
   def forward(self, stensor_src, stensor_tgt, src_image, tgt_image):
 
     # I1,I2,I3,I_global = self.img_encoder(image)
-    src_image = self.img_encoder(src_image)
-    tgt_image = self.img_encoder(tgt_image)
+    src_I0, src_I1, src_I2 = self.img_encoder(src_image)
+    src_image = self.img_decoder(src_I0, src_I1, src_I2)
+    tgt_I0, tgt_I1, tgt_I2 = self.img_encoder(tgt_image)
+    tgt_image = self.img_decoder(tgt_I0, tgt_I1, tgt_I2)
 
+    ##################################
     # Encode src
     src_s1 = self.conv1(stensor_src)
     src_s1 = self.norm1(src_s1)
@@ -197,6 +201,7 @@ class ResUNet2(ME.MinkowskiNetwork):
     src_s8 = self.block4(src_s8)
     src = MEF.relu(src_s8)
 
+    #################################
     # Encode tgt
     tgt_s1 = self.conv1(stensor_tgt)
     tgt_s1 = self.norm1(tgt_s1)
@@ -220,20 +225,48 @@ class ResUNet2(ME.MinkowskiNetwork):
     # print(out_s.coordinate_manager)
     # print(out_s4.coordinate_manager)
 
+    ####################################
     # fusion-attention
-    # src._F = self.transformer(images=src_image, F=src.F,xyz=src.C)
-    out_sfs_feat0 = self.transformer(images=src_image, F=src.F,xyz=src.C)
-    out_sft_feat0 = self.transformer(images=src_image, F=tgt.F,xyz=tgt.C)
-    src._F = self.transformer_ptp(F0=out_sfs_feat0, xyz0=src.C, F1=out_sft_feat0)
-    # print(out_s_feat.shape)
-    # print(out_s.C.shape)
+    # 1.apply the img2pt Attention-fusion module
+    src._F = self.transformer(images=src_image, F=src.F,xyz=src.C)
+    tgt._F = self.transformer(images=tgt_image, F=tgt.F, xyz=tgt.C)
 
-    out_sfs_feat1 = self.transformer(images=tgt_image, F=src.F, xyz=src.C)
-    out_sft_feat1 = self.transformer(images=tgt_image, F=tgt.F, xyz=tgt.C)
-    tgt._F = self.transformer_ptp(F0=out_sft_feat1, xyz0=tgt.C, F1=out_sfs_feat1)
+    src_feats = src.F.transpose(0,1)[None,:]  #[1, C, N]
+    tgt_feats = tgt.F.transpose(0,1)[None,:]  #[1, C, N]
+    src_pcd, tgt_pcd = src.C[:,1:] * self.voxel_size, tgt.C[:,1:] * self.voxel_size
+	
+    # 2. project the bottleneck feature
+    src_feats, tgt_feats = self.bottle(src_feats), self.bottle(tgt_feats)
+
+	# 3. apply GNN to communicate the features and get overlap scores
+    src_feats, tgt_feats= self.gnn(src_pcd.transpose(0,1)[None,:], tgt_pcd.transpose(0,1)[None,:],src_feats, tgt_feats)
+
+    src_feats, src_scores = self.proj_gnn(src_feats), self.proj_score(src_feats)[0].transpose(0,1)
+    tgt_feats, tgt_scores = self.proj_gnn(tgt_feats), self.proj_score(tgt_feats)[0].transpose(0,1)
+		
+
+	# 3. get cross-overlap scores
+    src_feats_norm = F.normalize(src_feats, p=2, dim=1)[0].transpose(0,1)
+    tgt_feats_norm = F.normalize(tgt_feats, p=2, dim=1)[0].transpose(0,1)
+    inner_products = torch.matmul(src_feats_norm, tgt_feats_norm.transpose(0,1))
+    temperature = torch.exp(self.epsilon) + 0.03
+    src_scores_x = torch.matmul(F.softmax(inner_products / temperature ,dim=1) ,tgt_scores)
+    tgt_scores_x = torch.matmul(F.softmax(inner_products.transpose(0,1) / temperature,dim=1),src_scores)
+
+	# 4. update sparse tensor
+    src_feats = torch.cat([src_feats[0].transpose(0,1), src_scores, src_scores_x], dim=1)
+    tgt_feats = torch.cat([tgt_feats[0].transpose(0,1), tgt_scores, tgt_scores_x], dim=1)
+    src = ME.SparseTensor(src_feats, 
+    		coordinate_map_key=src.coordinate_map_key,
+			coordinate_manager=src.coordinate_manager)
+
+    tgt = ME.SparseTensor(tgt_feats,
+			coordinate_map_key=tgt.coordinate_map_key,
+			coordinate_manager=tgt.coordinate_manager)
     # print(out_t_feat.shape)
     # print(out_t.C.shape)
     
+    ######################################
     # Decode src
     src = self.conv4_tr(src)
     src = self.norm4_tr(src)
@@ -300,18 +333,37 @@ class ResUNet2(ME.MinkowskiNetwork):
     tgt = MEF.relu(tgt)
     tgt = self.final(tgt)
 
-    if self.normalize_feature:
-      return ME.SparseTensor(
-          src.F / torch.norm(src.F, p=2, dim=1, keepdim=True),
-          coordinate_map_key=src.coordinate_map_key,
-          coordinate_manager=src.coordinate_manager
-      ), ME.SparseTensor(
-          tgt.F / torch.norm(tgt.F, p=2, dim=1, keepdim=True),
-          coordinate_map_key=tgt.coordinate_map_key,
-          coordinate_manager=tgt.coordinate_manager
-      )
-    else:
-      return src, tgt
+    ################################
+		# output features and scores
+    sigmoid = nn.Sigmoid()
+    src_feats, src_overlap, src_saliency = src.F[:,:-2], src.F[:,-2], src.F[:,-1]
+    tgt_feats, tgt_overlap, tgt_saliency = tgt.F[:,:-2], tgt.F[:,-2], tgt.F[:,-1]
+
+    src_overlap= torch.clamp(sigmoid(src_overlap.view(-1)),min=0,max=1)
+    src_saliency = torch.clamp(sigmoid(src_saliency.view(-1)),min=0,max=1)
+    tgt_overlap = torch.clamp(sigmoid(tgt_overlap.view(-1)),min=0,max=1)
+    tgt_saliency = torch.clamp(sigmoid(tgt_saliency.view(-1)),min=0,max=1)
+
+    src_feats = F.normalize(src_feats, p=2, dim=1)
+    tgt_feats = F.normalize(tgt_feats, p=2, dim=1)
+
+    scores_overlap = torch.cat([src_overlap, tgt_overlap], dim=0)
+    scores_saliency = torch.cat([src_saliency, tgt_saliency], dim=0)
+
+    return src_feats,  tgt_feats, scores_overlap, scores_saliency
+
+    # if self.normalize_feature:
+    #   return ME.SparseTensor(
+    #       src.F / torch.norm(src.F, p=2, dim=1, keepdim=True),
+    #       coordinate_map_key=src.coordinate_map_key,
+    #       coordinate_manager=src.coordinate_manager
+    #   ), ME.SparseTensor(
+    #       tgt.F / torch.norm(tgt.F, p=2, dim=1, keepdim=True),
+    #       coordinate_map_key=tgt.coordinate_map_key,
+    #       coordinate_manager=tgt.coordinate_manager
+    #   )
+    # else:
+    #   return src, tgt
 
   def transformer(self,images,F,xyz):
 
@@ -342,39 +394,6 @@ class ResUNet2(ME.MinkowskiNetwork):
 
           # fusion attention
           P_att = self.attention_fusion(image,queries_encoder = P_att)
-          P_att = torch.squeeze(P_att)
-          start += length
-          ps.append(P_att)
-          # fusion attention
-
-      F = torch.cat(ps, dim=0)
-
-      return F
-
-  def transformer_ptp(self, F0, xyz0, F1):
-
-      # batch ----- batch
-      lengths = []
-      max_batch = torch.max(xyz0[:, 0])
-      for i in range(max_batch + 1):
-          length = torch.sum(xyz0[:, 0] == i)
-          lengths.append(length)
-      # batch ----- batch
-
-      ps = []
-      start = 0
-      end = 0
-      for length in lengths:
-
-          # pc ------- pc
-          end += length
-          P0_att = torch.unsqueeze(F0[start:end, :], dim=0)  # [B,M,C]
-          P1_att = torch.unsqueeze(F1[start:end, :], dim=0)
-          # pc ------- pc
-
-
-          # fusion attention
-          P_att = self.attention_fusion_ptp(P1_att,queries_encoder = P0_att)
           P_att = torch.squeeze(P_att)
           start += length
           ps.append(P_att)

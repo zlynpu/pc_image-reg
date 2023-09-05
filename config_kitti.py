@@ -21,7 +21,7 @@ trainer_arg = add_argument_group('Trainer')
 trainer_arg.add_argument('--trainer', type=str, default='HardestContrastiveLossTrainer')
 trainer_arg.add_argument('--save_freq_epoch', type=int, default=1)
 trainer_arg.add_argument('--batch_size', type=int, default=2)
-trainer_arg.add_argument('--val_batch_size', type=int, default=1)
+trainer_arg.add_argument('--val_batch_size', type=int, default=2)
 
 # Hard negative mining
 trainer_arg.add_argument('--use_hard_negative', type=str2bool, default=True)
@@ -100,15 +100,15 @@ misc_arg.add_argument('--nn_max_n',type=int,default=500,help='The maximum number
 data_arg = add_argument_group('Data')
 # ----------------------------------------------------------------------- #
 # Kitti  ---- |output path|
-output_kitti = "outputs_kitti"
+output_kitti = "/data1/zhangliyuan/mycode/AAAI_2023/outputs/kitti_raw"
 logging_arg.add_argument('--out_dir', type=str, default=output_kitti)
 
 #Kitti  ----  |resume dir|
 misc_arg.add_argument('--resume_dir', type=str, default=None)
 
 # kitti ---- |num thread|
-misc_arg.add_argument('--train_num_thread', type=int, default=2)
-misc_arg.add_argument('--val_num_thread', type=int, default=1)
+misc_arg.add_argument('--train_num_thread', type=int, default=16)
+misc_arg.add_argument('--val_num_thread', type=int, default=16)
 misc_arg.add_argument('--test_num_thread', type=int, default=2)
 
 # Kitti  ----  |dataset|
@@ -118,7 +118,7 @@ data_arg.add_argument('--dataset', type=str, default=dataset_Kitti)
 voxel_size_Kitti = 0.3
 data_arg.add_argument('--voxel_size', type=float, default=voxel_size_Kitti)
 # Kitti ---- |ICP|
-icp_path = "/DISK/qwt/datasets/kitti/data_odometry_velodyne/dataset/icp"
+icp_path = "/data1/zhangliyuan/code/IMFNet_exp/dataset/Kitti/Kitti/icp"
 opt_arg.add_argument('--icp_cache_path', type=str, default=icp_path)
 # ----------------------------------------------------------------------- #
 
@@ -130,9 +130,9 @@ data_arg.add_argument('--overlap_path', type=str, default=overlap_path)
 
 # image setting
 data_arg.add_argument('--image_W', type=str, default=160)
-data_arg.add_argument('--image_H', type=str, default=120)
+data_arg.add_argument('--image_H', type=str, default=160)
 
-kitti_path = "/DISK/qwt/datasets/kitti/data_odometry_velodyne"
+kitti_path = "/data1/zhangliyuan/code/IMFNet_exp/dataset/Kitti/Kitti"
 data_arg.add_argument('--kitti_root', type=str, default=kitti_path)
 data_arg.add_argument(
     '--kitti_max_time_diff',

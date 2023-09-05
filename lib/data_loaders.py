@@ -351,9 +351,9 @@ class IndoorPairDataset(PairDataset):
 class KITTIPairDataset(PairDataset):
   AUGMENT = None
   DATA_FILES = {
-      'train': '../config/train_kitti.txt',
-      'val': '../config/val_kitti.txt',
-      'test': '../config/test_kitti.txt'
+      'train': '/data1/zhangliyuan/mycode/AAAI_2023/config/train_kitti.txt',
+      'val': '/data1/zhangliyuan/mycode/AAAI_2023/config/val_kitti.txt',
+      'test': '/data1/zhangliyuan/mycode/AAAI_2023/config/test_kitti.txt'
   }
   TEST_RANDOM_ROTATION = False
   IS_ODOMETRY = True
@@ -656,7 +656,9 @@ class KITTINMPairDataset(KITTIPairDataset):
     if self.IS_ODOMETRY:
       for dirname in subset_names:
         drive_id = int(dirname)
+        # print(root + '/sequences/%02d/velodyne/'%drive_id)
         fnames = glob.glob(root + '/sequences/%02d/velodyne/*.bin' % drive_id)
+        # print(fnames)
         assert len(fnames) > 0, f"Make sure that the path {root} has data {dirname}"
         inames = sorted([int(os.path.split(fname)[-1][:-4]) for fname in fnames])
 

@@ -1,7 +1,7 @@
 # coding = utf-8
 import open3d as o3d  # prevent loading error
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "4"
 import sys
 import json
 import logging
@@ -79,7 +79,7 @@ if __name__ == "__main__":
     for k in dconfig:
       if k not in ['resume_dir'] and k in resume_config:
         dconfig[k] = resume_config[k]
-    dconfig['resume'] = resume_config['out_dir'] + '/checkpoint.pth'
+    dconfig['resume'] = resume_config['resume_dir'] + '/Kitti.pth'
 
   logging.info('===> Configurations')
   for k in dconfig:

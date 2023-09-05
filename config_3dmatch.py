@@ -20,8 +20,8 @@ logging_arg = add_argument_group('Logging')
 trainer_arg = add_argument_group('Trainer')
 trainer_arg.add_argument('--trainer', type=str, default='HardestContrastiveLossTrainer')
 trainer_arg.add_argument('--save_freq_epoch', type=int, default=1)
-trainer_arg.add_argument('--batch_size', type=int, default=4)
-trainer_arg.add_argument('--val_batch_size', type=int, default=2)
+trainer_arg.add_argument('--batch_size', type=int, default=1)
+trainer_arg.add_argument('--val_batch_size', type=int, default=1)
 
 # Hard negative mining
 trainer_arg.add_argument('--use_hard_negative', type=str2bool, default=True)
@@ -69,6 +69,12 @@ net_arg.add_argument('--conv1_kernel_size', type=int, default=5)
 net_arg.add_argument('--normalize_feature', type=str2bool, default=True)
 net_arg.add_argument('--dist_type', type=str, default='L2')
 net_arg.add_argument('--best_val_metric', type=str, default='feat_match_ratio',help='[feat_match_ratio,rre,rte]')
+
+# Overlap_attention_module
+overlap_module = add_argument_group('Overlap')
+overlap_module.add_argument('--gnn_feats_dim', type=int, default=256)
+overlap_module.add_argument('--dgcnn_k', type=int, default=10)
+overlap_module.add_argument('--num_head', type=int, default=4)
 
 # Optimizer arguments
 opt_arg = add_argument_group('Optimizer')

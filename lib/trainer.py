@@ -48,7 +48,7 @@ class AlignmentTrainer:
 
     if config.weights:
       checkpoint = torch.load(config.weights)
-      model.load_state_dict(checkpoint['state_dict'])
+      model.load_state_dict(checkpoint['state_dict'],strict=False)
 
     logging.info(model)
 
@@ -344,7 +344,10 @@ class ContrastiveLossTrainer(AlignmentTrainer):
 
     for batch_idx in range(tot_num_data):
       data_timer.tic()
-      input_dict = data_loader_iter.next()
+      try:
+        input_dict = data_loader_iter.next()
+      except StopIteration:
+        break
       data_timer.toc()
 
       # pairs consist of (xyz1 index, xyz0 index)

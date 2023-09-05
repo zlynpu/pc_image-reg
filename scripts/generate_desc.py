@@ -14,7 +14,7 @@ import open3d as o3d
 import matplotlib.image as image
 import math
 
-ROOT_DIR = os.path.abspath('/data1/zhangliyuan/code/IMFNet')
+ROOT_DIR = os.path.abspath('/data1/zhangliyuan/mycode/AAAI_2023')
 if ROOT_DIR not in sys.path:
     sys.path.append(ROOT_DIR)
 
@@ -135,8 +135,8 @@ def extract_features_batch(
 if __name__ == '__main__':
 
   test_path = '/data1/zhangliyuan/code/IMFNet_exp/dataset/3DImageMatch/3DImageMatch/3DMatch_test'
-  target_path = '/data1/zhangliyuan/code/IMFNet/desc/exp4'
-  checkpoint_path = '/data1/zhangliyuan/code/IMFNet/pretrain/3DMatch/3DMatch.pth'
+  target_path = '/data1/zhangliyuan/mycode/AAAI_2023/desc/exp1_3dmatch'
+  checkpoint_path = '/data1/zhangliyuan/mycode/AAAI_2023/outputs/3dmatch_raw/best_val_checkpoint_epoch_17_feat_match_ratio_0.9925.pth'
 
 
   parser = argparse.ArgumentParser()

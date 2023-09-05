@@ -15,7 +15,7 @@ class ImageEncoder(nn.Module):
     def forward(self, x):
         resnet_out = self.backbone(x)
         # return resnet_out[2],resnet_out[3],resnet_out[4], resnet_out[5]
-        return resnet_out
+        return resnet_out[0], resnet_out[1], resnet_out[2]
 if __name__ == '__main__':
 
     data = torch.zeros(size=(32,3,256,256))
