@@ -108,7 +108,7 @@ misc_arg.add_argument('--nn_max_n',type=int,default=500,help='The maximum number
 data_arg = add_argument_group('Data')
 # ----------------------------------------------------------------------- #
 # 3DMatch ---- |output path|
-output_3DMatch = "outputs/3dmatch_raw"
+output_3DMatch = "outputs/3dmatch_predator"
 logging_arg.add_argument('--out_dir', type=str, default=output_3DMatch)
 
 # 3DMatch ---- |resume dir|

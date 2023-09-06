@@ -362,9 +362,8 @@ class ContrastiveLossTrainer(AlignmentTrainer):
           input_dict['sinput1_F'].to(self.device),
           coordinates=input_dict['sinput1_C'].to(self.device))
       
-      result0,result1 = self.model(sinput0,sinput1,image0,image1)
-      F0 = result0.F
-      F1 = result1.F
+      F0,  F1, scores_overlap, scores_saliency = self.model(sinput0,sinput1,image0,image1)
+    
       feat_timer.toc()
 
       matching_timer.tic()
@@ -529,9 +528,7 @@ class HardestContrastiveLossTrainer(ContrastiveLossTrainer):
             input_dict['sinput1_F'].to(self.device),
             coordinates=input_dict['sinput1_C'].to(self.device))
       
-        result0,result1 = self.model(sinput0,sinput1,image0,image1)
-        F0 = result0.F
-        F1 = result1.F
+        F0,  F1, scores_overlap, scores_saliency = self.model(sinput0,sinput1,image0,image1)
 
         pos_pairs = input_dict['correspondences']
         pos_loss, neg_loss = self.contrastive_hardest_negative_loss(

@@ -42,6 +42,7 @@ class ResUNet2(ME.MinkowskiNetwork):
     IMG_CHANNELS = self.IMG_CHANNELS
 
     self.nets = ['self', 'cross', 'self']
+    self.voxel_size = config.voxel_size
     self.normalize_feature = normalize_feature
     self.conv1 = ME.MinkowskiConvolution(
         in_channels=in_channels,
@@ -101,6 +102,7 @@ class ResUNet2(ME.MinkowskiNetwork):
         cross_dim_head=int(CHANNELS[4]/2),  # number of dimensions per cross attention head
         latent_dim_head=int(CHANNELS[4]/2),  # number of dimensions per latent self attention head
     )
+
     # Overlap attention module
     self.epsilon = torch.nn.Parameter(torch.tensor(-5.0))
     self.bottle = nn.Conv1d(CHANNELS[4], config.gnn_feats_dim,kernel_size=1,bias=True)
@@ -175,7 +177,9 @@ class ResUNet2(ME.MinkowskiNetwork):
 
     # I1,I2,I3,I_global = self.img_encoder(image)
     src_I0, src_I1, src_I2 = self.img_encoder(src_image)
+    # print(src_I2.shape)
     src_image = self.img_decoder(src_I0, src_I1, src_I2)
+    # print(src_image.shape)
     tgt_I0, tgt_I1, tgt_I2 = self.img_encoder(tgt_image)
     tgt_image = self.img_decoder(tgt_I0, tgt_I1, tgt_I2)
 
